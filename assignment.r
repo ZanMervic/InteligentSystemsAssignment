@@ -60,8 +60,8 @@ test_solution <- function(path){
 
 
 #Function that gets a maze, move and current position and changes the move and position to a valid one
-#We need to make sure we only made 1 invalid move !!! 
-#And that we are not out of bounds
+#We need to make sure we only made 1 invalid move And that we are not out of bounds!!! 
+#Possible improvements, recieve the matrix with a "o" where we have been and prioritising moves that dont get us on a "o" but rather on a "."
 generate_valid_move <- function(maze_matrix, prev_move, current){
   
     #We change the position to the one before the move
@@ -133,11 +133,11 @@ custom_population <- function(object,...){
   my_population <- matrix(sample(0:1, my_nBits * my_popSize, replace = TRUE), nrow=my_popSize)
   
   #We set the minimum required steps for our entity to be valid
-  required_steps <- my_nBits / 4
+  required_steps <- my_required_steps
   
   #We check how many steps are made before going into a wall, if its less than required steps we generate a new value
   maze_matrix = map_reading(my_maze)
-  for(row in 1:my_popSize){
+  for(row in 1:my_starting_population_size){
     path <- my_population[row,]
     steps_made <- 0
     
@@ -232,20 +232,12 @@ custom_mutation <- function(object, parent)
   
   
   #Change that element to a random move that is different than the invalid one
+  new_move <- generate_valid_move(maze_matrix, move, current)[2,]
   
-  "new_move <- generate_valid_move(maze_matrix, move, current)[2,]
-  if(new_move[1] == 2){
-    #Something went wrong, we use a random new move
-    new_move <- c(sample(0:1, 1),sample(0:1, 1))
-    while(all(new_move == move)){
-      new_move <- c(sample(0:1, 1),sample(0:1, 1))
-    }
-  }"
-  
-  new_move <- c(sample(0:1, 1),sample(0:1, 1))
+  'new_move <- c(sample(0:1, 1),sample(0:1, 1))
   while(all(new_move == move)){
     new_move <- c(sample(0:1, 1),sample(0:1, 1))
-  }
+  }'
   
   
   mutate[j] <- new_move[1]
@@ -322,12 +314,27 @@ fitness <- function(path){
   return(100/sqrt((current[1] - exit[1])^2 + (current[2] - exit[2])^2) - penalties)
 }
 
-my_maze <- maze5
-my_nBits <- ceiling((nchar(my_maze[1])^2) / 2) * 2
-my_popSize = 1000
+#ALL SETTINGS----------------------------------------
+#ga settings
+my_nBits <- ceiling((nchar(my_maze[1])^2) / 2) * 2 #number of bits -> A suitable value for nBits is (nchar(mazex[1])^2) / 2
+my_popSize = 1000 #population size
+my_maxiter = 1000 #number of iterations
+my_run = 50 #number of runs
+my_pmutation = 0.3 #mutation chance
 
-#A suitable value for nBits is (nchar(mazex[1])^2) / 2
-GA <- ga(type = "binary", fitness = fitness, nBits = my_nBits, maxiter = 1000, run = 100, popSize = my_popSize, pmutation = 0.3, mutation=custom_mutation, population = custom_population)
+#starting population settings -best for normal mazes
+my_required_steps = floor(my_nBits / 2) #number of valid steps first gen entities need to make -> MAX my_nbits / 2 !!!
+my_starting_population_size = my_popSize #number of "trained" first gen entities -> MAX my_popSize, min = 1 (gives a random population)!!!
+
+#best for treasure mazes
+my_required_steps = max((my_nBits / 2), 20) #A low value is best for treasure mazes because it doesn't allow entities to reach the end thus getting many points and missing a treasure
+my_starting_population_size = 1 #number of "trained" first gen entities -> MAX my_popSize, min = 1 (gives a random population)!!!
+
+my_maze <- maze7_T #MAZE
+
+#----------------------------------------------------
+
+GA <- ga(type = "binary", fitness = fitness, nBits = my_nBits, maxiter = my_maxiter, run = my_run, popSize = my_popSize, pmutation = my_pmutation, mutation=custom_mutation, population = custom_population)
 
 
 summary(GA)
@@ -335,5 +342,7 @@ GA@solution
 
 test_solution(GA@solution[1,])
 
-#Can complete mazes consistently: 1,2,3,4,5
-#Can collect all treasures: 3T,4T,(5T)
+#RESULTS ----------------------------------------------
+
+#Can complete mazes consistently: 1,2,3,4,5,6, 3T,4T,5T
+#Can collect all treasures: 3T,4T,(5T),
