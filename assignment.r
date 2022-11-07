@@ -62,13 +62,8 @@ test_solution <- function(path){
 #Function that gets a maze, move and current position and changes the move and position to a valid one
 #We need to make sure we only made 1 invalid move !!! 
 #And that we are not out of bounds
-'generate_valid_move <- function(maze_matrix, prev_move, current){
-  tryCatch(expr = {
-    #If the function input is invalid
-    if(any(current < 1) || any(current > dim(maze_matrix)[2])){
-      return(matrix(c(current, prev_move), ncol = 2, byrow = TRUE))
-    }
-    
+generate_valid_move <- function(maze_matrix, prev_move, current){
+  
     #We change the position to the one before the move
     if(all(prev_move == c(0,0))){ #UP -> go down
       current <- current + c(1,0)
@@ -83,8 +78,6 @@ test_solution <- function(path){
     }
     
     
-    
-    
     #List of possible moves
     possible_moves <- matrix(c(0,0,0,1,1,0,1,1), ncol = 2, byrow = TRUE)
     count = 4
@@ -94,22 +87,17 @@ test_solution <- function(path){
       possible_moves <- possible_moves[-(count-3),]
       count <- count - 1
     }
-    if(current[1] >= dim(maze_matrix)[1] || maze_matrix[current[1] + 1, current[2]] == "#"){
+    if(current[2] <= 1 || maze_matrix[current[1], current[2] + 1] == "#"){
       possible_moves <- possible_moves[-(count-2),]
       count <- count - 1
     }
-    if(current[2] <= 1 || maze_matrix[current[1], current[2] - 1] == "#"){
+    if(current[1] >= dim(maze_matrix)[1] || maze_matrix[current[1] + 1, current[2]] == "#"){
       possible_moves <- possible_moves[-(count-1),]
       count <- count - 1
     }
-    if(current[2] >= dim(maze_matrix)[2] || maze_matrix[current[1], current[2] + 1] == "#"){
-      if(count == 1){
-        #Neki se je zgodilo narobe in zavrzemo ta entity
-        return(matrix(c(current, c(2,2)), ncol = 2, byrow = TRUE))
-      }else{
-        possible_moves <- possible_moves[-count,]
-        count <- count - 1
-      }
+    if(current[2] >= dim(maze_matrix)[2] || maze_matrix[current[1], current[2] - 1] == "#"){
+      possible_moves <- possible_moves[-count,]
+      count <- count - 1
     }
     
     
@@ -134,22 +122,9 @@ test_solution <- function(path){
       print("Error2 in change_to_valid")
     }
     
-    #Neki se je zgodilo narobe in zavrzemo ta entity
-    if(!all(current > 0) || !all(current <= dim(maze_matrix))){
-      return(matrix(c(current, c(2,2)), ncol = 2, byrow = TRUE))
-    }
-    
     return(matrix(c(current, new_move), ncol = 2, byrow = TRUE))
-  }, error = {
-    return(matrix(c(current, c(2,2)), ncol = 2, byrow = TRUE))
-  }, warning = {
-    return(matrix(c(current, c(2,2)), ncol = 2, byrow = TRUE))
-  }
-  )
   
-  
-  
-}'
+}
 
 
 
@@ -158,52 +133,52 @@ custom_population <- function(object,...){
   my_population <- matrix(sample(0:1, my_nBits * my_popSize, replace = TRUE), nrow=my_popSize)
   
   #We set the minimum required steps for our entity to be valid
-  required_steps <- my_nBits / 8
+  required_steps <- my_nBits / 4
   
   #We check how many steps are made before going into a wall, if its less than required steps we generate a new value
   maze_matrix = map_reading(my_maze)
-  for(row in 1:2){
-    print(row)
+  for(row in 1:my_popSize){
     path <- my_population[row,]
     steps_made <- 0
-    valid <- FALSE
     
     #We count the moves with our current path and change the path if invalid
-    while(!valid){
-      current <- as.vector(t(which(maze_matrix == 'S', arr.ind = TRUE)))
-      for (i in seq(1, length(path), 2)) {
-        move <- path[i : (i+1)]
-        if(all(move == c(0,0))){ #UP
-          current <- current - c(1,0)
-        } else if(all(move == c(0,1))){ #RIGHT
-          current <- current + c(0,1)
-        } else if(all(move == c(1,0))){ #DOWN
-          current <- current + c(1,0)
-        } else if(all(move == c(1,1))){ #LEFT
-          current <- current - c(0,1)
-        } else{
-          print('Error in custom pupulation')
-        }
-        
-        #If we hit a wall we generate a different (valid) move
-        if(!all(current > 0) || !all(current < dim(maze_matrix)) || maze_matrix[current[1], current[2]] == '#'){
-          steps_made = 0
-          path <- sample(0:1, my_nBits, replace = TRUE)
+    current <- as.vector(t(which(maze_matrix == 'S', arr.ind = TRUE)))
+    for (i in seq(1, length(path), 2)) {
+      move <- path[i : (i+1)]
+      if(all(move == c(0,0))){ #UP
+        current <- current - c(1,0)
+      } else if(all(move == c(0,1))){ #RIGHT
+        current <- current + c(0,1)
+      } else if(all(move == c(1,0))){ #DOWN
+        current <- current + c(1,0)
+      } else if(all(move == c(1,1))){ #LEFT
+        current <- current - c(0,1)
+      } else{
+        print('Error in custom pupulation')
+      }
+      
+      #If we hit a wall we generate a different (valid) move
+      if(!all(current > 0) || !all(current <= dim(maze_matrix)) || maze_matrix[current[1], current[2]] == '#'){
+        temp <- generate_valid_move(maze_matrix, move, current)
+        move <- temp[2,]
+        path[i:(i+1)] <- move
+        current <- temp[1,]
+        if(!all(current > 0) || !all(current <= dim(maze_matrix)) || maze_matrix[current[1], current[2]] == '#'){
+          print("Something went wrong, aborting")
           break
         }
-        else if(maze_matrix[current[1], current[2]] == 'E'){
-          #If we have a solution that reaches the finish we keep it
-          valid <- TRUE
-          break
-        }
-        
-        steps_made <- steps_made + 1
-        
-        #If we made enough steps we stop the iteration
-        if(steps_made >= required_steps){
-          valid <- TRUE
-          break
-        }
+      }
+      
+      if(maze_matrix[current[1], current[2]] == 'E'){
+        #If we have a solution that reaches the finish we keep it
+        break
+      }
+      
+      steps_made <- steps_made + 1
+      
+      #If we made enough steps we stop the iteration
+      if(steps_made >= required_steps){
+        break
       }
     }
     
