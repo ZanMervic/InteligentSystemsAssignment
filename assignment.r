@@ -330,7 +330,7 @@ my_starting_population_size = my_popSize #number of "trained" first gen entities
 my_required_steps = max((my_nBits / 2), 20) #A low value is best for treasure mazes because it doesn't allow entities to reach the end thus getting many points and missing a treasure
 my_starting_population_size = 1 #number of "trained" first gen entities -> MAX my_popSize, min = 1 (gives a random population)!!!
 
-my_maze <- maze7_T #MAZE
+my_maze <- maze7 #MAZE
 
 #----------------------------------------------------
 
