@@ -34,7 +34,7 @@ test_solution <- function(path){
     } else{
       print("Error")
     }
-    if(!all(current > 0) || !all(current < dim(maze_matrix)) || maze_matrix[current[1], current[2]] == '#'){
+    if(!all(current > 0) || !all(current <= dim(maze_matrix)) || maze_matrix[current[1], current[2]] == '#'){
       print("HIT A WALL")
       return(list(maze=maze_matrix, position=current, penalties=penalties, treasures=treasures))
     }
@@ -317,7 +317,7 @@ fitness <- function(path){
 #ALL SETTINGS----------------------------------------
 #ga settings
 my_nBits <- ceiling((nchar(my_maze[1])^2) / 2) * 2 #number of bits -> A suitable value for nBits is (nchar(mazex[1])^2) / 2
-my_popSize = 1000 #population size
+my_popSize = 10000 #population size
 my_maxiter = 1000 #number of iterations
 my_run = 50 #number of runs
 my_pmutation = 0.3 #mutation chance
