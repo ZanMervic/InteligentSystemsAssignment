@@ -315,9 +315,12 @@ fitness <- function(path){
 }
 
 #ALL SETTINGS----------------------------------------
+
+my_maze <- maze5 #MAZE
+
 #ga settings
 my_nBits <- ceiling((nchar(my_maze[1])^2) / 2) * 2 #number of bits -> A suitable value for nBits is (nchar(mazex[1])^2) / 2
-my_popSize = 10000 #population size
+my_popSize = 1000 #population size
 my_maxiter = 1000 #number of iterations
 my_run = 50 #number of runs
 my_pmutation = 0.3 #mutation chance
@@ -330,7 +333,6 @@ my_starting_population_size = my_popSize #number of "trained" first gen entities
 my_required_steps = max((my_nBits / 2), 20) #A low value is best for treasure mazes because it doesn't allow entities to reach the end thus getting many points and missing a treasure
 my_starting_population_size = 1 #number of "trained" first gen entities -> MAX my_popSize, min = 1 (gives a random population)!!!
 
-my_maze <- maze7 #MAZE
 
 #----------------------------------------------------
 
