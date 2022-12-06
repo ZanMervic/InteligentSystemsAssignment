@@ -1,5 +1,5 @@
 library(ggplot2)
-library(CORElearn)
+library(CORElearn) #https://cran.r-project.org/web/packages/CORElearn/CORElearn.pdf
 library(caret)
 
 #We store the datasets in a table
@@ -87,6 +87,7 @@ CA <- function(observed, predicted)
 #model is knn and we are looking at 9 nearest neighbors (which is the optimum)
 simpleKNN <- CoreModel(Class ~ ., data = learn, model="knn", kInNN = 9)
 
+
 #This is the actual predicition, which takes in the model and the test data
 predicted <- predict(simpleKNN, test, type="class")
 
@@ -126,6 +127,12 @@ rndForest <- CoreModel(Class ~ ., data = learn, model="rf")
 predicted <- predict(rndForest, test, type="class")
 CA(observed, predicted)
 
+
+#Random forest only using the 30 most important features -> for some reason it performs worse :)
+rndForest2 <- CoreModel(Class ~ V41 + V7 + V35  + V3  + V6 + V11  + V5  + V9 + V10 + V28 + V40 + V17 + V16  + V8  + V2 + V31 + V13 + V15 + V38 + V14 + V18 + V30 + V34 + V37 + V12 + V27 + V39 + V22  + V1 + V36 , data = learn, model="rf")
+predicted <- predict(rndForest2, test, type="class")
+CA(observed, predicted)
+
 #-----------------------------------------------------------------------------------------------------------------------
 
 
@@ -148,7 +155,7 @@ CA(observed, predicted)
 
 
 
-
+#Here we calculate feature importances for a specific moder (rf and knn in this case) ------------------------------------------------------------------
 
 # What about some model-based feature importances?
 # This can do attribute accuracy calculations for us (caret libraray)
@@ -162,6 +169,8 @@ rf.model <- train(Class ~ ., data=learn, method='rf', metric='Accuracy', trContr
 #varImp extracts the feature relevances
 rf.importances <- varImp(rf.model, scale = FALSE)
 plot(rf.importances, top = 30) #we plot the importances (random forrest are random so with a different seed we could have gotten different results)
+
+
 
 
 
@@ -179,12 +188,18 @@ rf.importances <- varImp(rf.model, scale = FALSE)
 plot(rf.importances, top = 30) #we plot the importances (random forrest are random so with a different seed we could have gotten different results)
 
 
+#HOW DO WE USE THESE IMPORTANCES WITHOUT MANUALY TYPING THE FIRST N MOST IMPORTANT FEATURES
+#WHY DO MODELS PERFORM WORSE WHEN USING THESE IMPORTANCES ???
+
+#-----------------------------------------------------------------------------------------------------------------------
 
 
 
 
 
 
+
+#AUTOMATIC CROSS VALIDATION (AND RANDOM SEARCH) USING CARET LIBRARY -------------------------------------------------------------------------------
 
 #For some reason this gives us worse results than anything else, when it should give us the best results
 #because we are using cross validation with 5 folds and 10 repeats
@@ -226,9 +241,6 @@ plot(modelKNN)
 
 
 
-
-
-
 # In addition to the exaustion search (grid search) we can do a random serch (much much faster)
 # Won't give us the optimal result but does work quite well
 
@@ -241,7 +253,23 @@ predicted <- predict(rf_random, test, type="raw")
 CA(observed,predicted)
 qplot(rf_random$results$mtry,rf_random$results$Accuracy, geom = c("line","point"))
 
+#-----------------------------------------------------------------------------------------------------------------------------------------------
 
+
+#
+#
+#
+#2.3 EVALUATION
+#
+#
+#
+
+
+
+#For evaluation we can use a modelEval function built in coreLearn
+
+#The components we will use are: eval$precision, eval$AUC, eval$recall, eval$Fmeasure
+eval = modelEval(model=NULL, observed, predicted)
 
 
 
