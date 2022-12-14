@@ -1,6 +1,7 @@
 library(ggplot2)
 library(CORElearn) #https://cran.r-project.org/web/packages/CORElearn/CORElearn.pdf
-library(caret)
+library(caret) #https://cran.r-project.org/web/packages/caret/caret.pdf
+library(M3C) #https://www.bioconductor.org/packages/release/bioc/html/M3C.html - how to download
 
 #We store the datasets in a table
 learn <- read.table("train.csv", sep=',', header = T)
@@ -12,6 +13,14 @@ test$Class = as.factor(test$Class)
 
 # the target variable is the "Class" attribute
 observed <- test$Class
+
+# The classification accuracy
+CA <- function(observed, predicted)
+{
+  t <- table(observed, predicted)
+  
+  sum(diag(t)) / sum(t)
+}
 
 
 #
@@ -25,6 +34,21 @@ observed <- test$Class
 
 #Let's see how balanced is the target vairable
 qplot(learn$Class, ylab="Number of each class", main="Class", geom = c("bar"))
+
+
+
+
+#How to handle missing values
+
+#https://towardsdatascience.com/7-ways-to-handle-missing-values-in-machine-learning-1a6326adf79e
+
+#Number of missing values per row (instance)
+rowSum(is.na(learn))
+#Number of missing values per column (attribute)
+colSum(is.na(learn))
+
+
+
 
 
 #Let's see which attributes are the most important using different methods (use ?attrEval to see descriptions of each method):
@@ -50,9 +74,8 @@ sort(attrEval(Class ~ ., learn, "ReliefFequalK"), decreasing = TRUE)
 sort(attrEval(Class ~ ., learn, "MDL"), decreasing = TRUE)
 
 
-#How to handle missing values
 
-#https://towardsdatascience.com/7-ways-to-handle-missing-values-in-machine-learning-1a6326adf79e
+
 
 
 #Visualizations of feature space
@@ -61,13 +84,8 @@ sort(attrEval(Class ~ ., learn, "MDL"), decreasing = TRUE)
 qplot(learn$V30,learn$V39, col=learn$Class)
 
 
-# The classification accuracy
-CA <- function(observed, predicted)
-{
-  t <- table(observed, predicted)
-  
-  sum(diag(t)) / sum(t)
-}
+
+
 
 
 #
@@ -80,16 +98,19 @@ CA <- function(observed, predicted)
 
 
 
+cvCoreModel(Class ~ ., data=learn, model=c("rf","rfNear","tree","knn","knnKernel","bayes","regTree"),costMatrix=NULL, folds=10)
+
+
+
 #kNN - first we try to classify using a simple kNN algorithm -----------------------------------------------------------
 
 #This is creating the model using the learn data
 #We are predicting the Class using everything else, our data is learn,
 #model is knn and we are looking at 9 nearest neighbors (which is the optimum)
-simpleKNN <- CoreModel(Class ~ ., data = learn, model="knn", kInNN = 9)
-
+knn.model <- CoreModel(Class ~ ., data = learn, model="knn", kInNN = 9)
 
 #This is the actual predicition, which takes in the model and the test data
-predicted <- predict(simpleKNN, test, type="class")
+predicted <- predict(knn.model, test, type="class")
 
 #Classification accuracy
 CA(observed, predicted)
@@ -99,18 +120,21 @@ table(observed)
 sum(observed=='1')/length(observed)
 
 
-#kNN - next let's try using corss validation to determine the best hyperparameters for the kNN (kInNN) -----------------
+
+
+
+#kNN - next let's try using corss validation to determine the best hyperparameters for the kNN (kInNN)
 
 #here we will store 
 performances <- c()
 for (kParam in 5:15){
   #instead of coreModel we use the cvCoreModel which has built in cross validation
-  crossKNN <- cvCoreModel(Class ~ ., data = learn, model="knn", kInNN = kParam, folds = 3)
-  performances <- c(performances, crossKNN$avgs['accuracy'])
+  knn.cross.model <- cvCoreModel(Class ~ ., data = learn, model="knn", kInNN = kParam, folds = 10)
+  performances <- c(performances, knn.cross.model$avgs['accuracy'])
 }
 optK <- which.max(performances)
-crossKNN <- CoreModel(Class ~ ., data = learn, model="knn", kInNN = optK)
-predicted <- predict(crossKNN, test, type="class")
+knn.cross.model <- CoreModel(Class ~ ., data = learn, model="knn", kInNN = optK)
+predicted <- predict(knn.cross.model, test, type="class")
 CA(observed, predicted)
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -123,14 +147,14 @@ CA(observed, predicted)
 
 #Random forest ---------------------------------------------------------------------------------------------------------
 
-rndForest <- CoreModel(Class ~ ., data = learn, model="rf")
-predicted <- predict(rndForest, test, type="class")
+rf.model <- CoreModel(Class ~ ., data = learn, model="rf")
+predicted <- predict(rf.model, test, type="class")
 CA(observed, predicted)
 
 
 #Random forest only using the 30 most important features -> for some reason it performs worse :)
-rndForest2 <- CoreModel(Class ~ V41 + V7 + V35  + V3  + V6 + V11  + V5  + V9 + V10 + V28 + V40 + V17 + V16  + V8  + V2 + V31 + V13 + V15 + V38 + V14 + V18 + V30 + V34 + V37 + V12 + V27 + V39 + V22  + V1 + V36 , data = learn, model="rf")
-predicted <- predict(rndForest2, test, type="class")
+rf2.model <- CoreModel(Class ~ V41 + V7 + V35  + V3  + V6 + V11  + V5  + V9 + V10 + V28 + V40 + V17 + V16  + V8  + V2 + V31 + V13 + V15 + V38 + V14 + V18 + V30 + V34 + V37 + V12 + V27 + V39 + V22  + V1 + V36 , data = learn, model="rf")
+predicted <- predict(rf2.model, test, type="class")
 CA(observed, predicted)
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -144,8 +168,8 @@ CA(observed, predicted)
 
 #Decision trees---------------------------------------------------------------------------------------------------------
 
-decisionTree <- CoreModel(Class ~ ., data = learn, model="tree")
-predicted <- predict(decisionTree, test, type="class")
+dt.model <- CoreModel(Class ~ ., data = learn, model="tree")
+predicted <- predict(dt.model, test, type="class")
 CA(observed, predicted)
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -155,7 +179,7 @@ CA(observed, predicted)
 
 
 
-#Here we calculate feature importances for a specific moder (rf and knn in this case) ------------------------------------------------------------------
+#Here we calculate feature importances for a specific model (rf and knn in this case) ------------------------------------------------------------------
 
 # What about some model-based feature importances?
 # This can do attribute accuracy calculations for us (caret libraray)
@@ -173,19 +197,12 @@ plot(rf.importances, top = 30) #we plot the importances (random forrest are rand
 
 
 
-
-# What about some model-based feature importances?
-# This can do attribute accuracy calculations for us (caret libraray)
+#Another calculation using the same seed and knn
 set.seed(123780)
-#Number randomly variable selected is mtry
 control <- trainControl(method='repeatedcv',number=10, repeats=3) #cross validation
-
-#We will use a random fores model - because we have multiple small trees we can see which trees and which attributes are most useful
-rf.model <- train(Class ~ ., data=learn, method='knn', metric='Accuracy', trControl=control, na.action = na.omit,)
-
-#varImp extracts the feature relevances
-rf.importances <- varImp(rf.model, scale = FALSE)
-plot(rf.importances, top = 30) #we plot the importances (random forrest are random so with a different seed we could have gotten different results)
+knn.model <- train(Class ~ ., data=learn, method='knn', metric='Accuracy', trControl=control, na.action = na.omit,)
+knn.importances <- varImp(rf.model, scale = FALSE)
+plot(knn.importances, top = 30)
 
 
 #HOW DO WE USE THESE IMPORTANCES WITHOUT MANUALY TYPING THE FIRST N MOST IMPORTANT FEATURES
@@ -267,9 +284,13 @@ qplot(rf_random$results$mtry,rf_random$results$Accuracy, geom = c("line","point"
 
 
 #For evaluation we can use a modelEval function built in coreLearn
-
 #The components we will use are: eval$precision, eval$AUC, eval$recall, eval$Fmeasure
-eval = modelEval(model=NULL, observed, predicted)
+evalucation <- function(observed, predicted)
+{
+  eval <- modelEval(model=NULL, observed, predicted)
+  evals <- setNames(c(eval$Fmeasure, eval$precision, eval$recall, eval$AUC), c("F1", "Precision", "Recall", "AUC"))
+  return(evals)
+}
 
 
 
