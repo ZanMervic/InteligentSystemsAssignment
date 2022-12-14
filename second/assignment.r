@@ -3,7 +3,7 @@ library(CORElearn) #https://cran.r-project.org/web/packages/CORElearn/CORElearn.
 library(caret) #https://cran.r-project.org/web/packages/caret/caret.pdf
 library(M3C) #https://www.bioconductor.org/packages/release/bioc/html/M3C.html - how to download
 
-#We store the datasets in a table Joze
+#We store the datasets in a table
 learn <- read.table("train.csv", sep=',', header = T)
 test <- read.table("test.csv", sep=',', header = T)
 
